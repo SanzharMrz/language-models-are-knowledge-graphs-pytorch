@@ -5,7 +5,7 @@ import en_core_web_sm
 
 if __name__ == '__main__':
     nlp = en_core_web_sm.load()
-    selected_model = 'gpt2-medium'
+    selected_model = 'bert-base-cased'
 
     use_cuda = False
 
