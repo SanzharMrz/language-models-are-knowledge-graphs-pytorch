@@ -28,7 +28,7 @@ if __name__ == '__main__':
         parsing_time = time.time() - start_time
         elapsed_time.append(parsing_time)
         
-    data['time'] = elapsed_time
+    data['time_cuda'] = elapsed_time
     data['parsing_results'] = parsed_triplets
     data.to_csv('texts_parsed.csv', index=False)
 
