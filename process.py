@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, BertModel, GPT2Model
 from constant import invalid_relations_set
 
 
-def process_matrix(attentions, layer_idx=-1, head_num=0, avg_head=False, use_cuda=False):
+def process_matrix(attentions, layer_idx=-1, head_num=0, avg_head=False, use_cuda=True):
     if avg_head:
         if use_cuda:
             attn = torch.mean(attentions[0][layer_idx], 0).cpu()
@@ -55,12 +55,11 @@ def filter_relation_sets(params):
     return {}
 
 
-def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=False):
+def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=True):
     '''Implement the match part of MAMA
 
     '''
     tokenizer_name = str(tokenizer.__str__)
-
     inputs, tokenid2word_mapping, token2id, noun_chunks = create_mapping(sentence, return_pt=True, nlp=nlp,
                                                                          tokenizer=tokenizer)
 
@@ -80,7 +79,7 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=False):
     tail_head_pairs = []
     for head in noun_chunks:
         for tail in noun_chunks:
-            if head != tail:
+            if (head != tail) and (head.lower() in entities) and (tail.lower() in entities):
                 tail_head_pairs.append((token2id[head], token2id[tail]))
 
     black_list_relation = set([token2id[n] for n in noun_chunks])
@@ -88,7 +87,7 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=False):
     all_relation_pairs = []
     id2token = {value: key for key, value in token2id.items()}
 
-    with Pool(10) as pool:
+    with Pool(32) as pool:
         params = [(pair[0], pair[1], attn_graph, max(tokenid2word_mapping), black_list_relation,) for pair in
                   tail_head_pairs]
         for output in pool.imap_unordered(bfs, params):
@@ -96,7 +95,7 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=False):
                 all_relation_pairs += [(o, id2token) for o in output]
 
     triplet_text = []
-    with Pool(10, global_initializer, (nlp,)) as pool:
+    with Pool(32, global_initializer, (nlp,)) as pool:
         for triplet in pool.imap_unordered(filter_relation_sets, all_relation_pairs):
             if len(triplet) > 0:
                 triplet_text.append(triplet)
@@ -133,7 +132,6 @@ if __name__ == "__main__":
     for target_file, output_filename in zip(target_file, output_filename):
         with open(target_file, 'r') as f:
             dataset = json.load(f)
-
         output_filename = selected_model + '_' + output_filename
 
         print(target_file, output_filename)

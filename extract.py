@@ -6,10 +6,13 @@ import argparse
 import en_core_web_md
 from tqdm import tqdm
 import json
+import pickle
+from deeppavlov import configs, build_model
+
 
 def str2bool(v):
     if isinstance(v, bool):
-       return v
+        return v
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
@@ -18,15 +21,15 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 parser = argparse.ArgumentParser(description='Process lines of text corpus into knowledgraph')
-parser.add_argument('input_filename', type=str, help='text file as input')
-parser.add_argument('output_filename', type=str, help='output text file')
+parser.add_argument('--input_filename', type=str, help='text file as input')
+parser.add_argument('--output_filename', type=str, help='output text file')
 parser.add_argument('--language_model',default='bert-base-cased', 
                     choices=[ 'bert-large-uncased', 'bert-large-cased', 'bert-base-uncased', 'bert-base-cased', 'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl'],
                     help='which language model to use')
 parser.add_argument('--use_cuda', default=True, 
                         type=str2bool, nargs='?',
                         help="Use cuda?")
-parser.add_argument('--include_text_output', default=False, 
+parser.add_argument('--include_text_output', default=True, 
                         type=str2bool, nargs='?',
                         help="Include original sentence in output")
 parser.add_argument('--threshold', default=0.003, 
@@ -36,6 +39,7 @@ args = parser.parse_args()
 
 use_cuda = args.use_cuda
 nlp = en_core_web_md.load()
+el_model = build_model(configs.kbqa.entity_linking_eng, download=False)
 
 '''Create
 Tested language model:
@@ -64,32 +68,30 @@ if __name__ == '__main__':
     output_filename = args.output_filename
     include_sentence = args.include_text_output
 
-    with open(input_filename, 'r') as f, open(output_filename, 'w') as g:
-        for idx, line in enumerate(tqdm(f)):
-            sentence  = line.strip()
-            if len(sentence):
-                valid_triplets = []
-                for sent in nlp(sentence).sents:
-                    # Match
-                    for triplets in parse_sentence(sent.text, tokenizer, encoder, nlp, use_cuda=use_cuda):
-                        valid_triplets.append(triplets)
-                if len(valid_triplets) > 0:
-                    # Map
-                    mapped_triplets = []
-                    for triplet in valid_triplets:
-                        head = triplet['h']
-                        tail = triplet['t']
-                        relations = triplet['r']
-                        conf = triplet['c']
-                        if conf < args.threshold:
-                            continue
-                        mapped_triplet = Map(head, relations, tail)
-                        if 'h' in mapped_triplet:
-                            mapped_triplet['c'] = conf
-                            mapped_triplets.append(mapped_triplet)
-                    output = { 'line': idx, 'tri': deduplication(mapped_triplets) }
+    with open(output_filename, 'w') as g:
+        with open(input_filename, "rb") as f:
+            parsed_data = pickle.load(f)
+            for sentence, triplets in parsed_data.items():
+                sentence  = sentence.strip()
+                if len(sentence):
+                    if len(triplets) > 0:
+                        # Map
+                        entities = " ".join(el_model([sentence])[0][0]).lower()
+                        mapped_triplets = []
+                        for triplet in triplets:
+                            head = triplet['h']
+                            tail = triplet['t']
+                            relations = triplet['r']
+                            conf = triplet['c']
+                            if conf < args.threshold:
+                                continue
+                            mapped_triplet = Map(head, relations, tail, entities)
+                            if 'h' in mapped_triplet:
+                                mapped_triplet['c'] = conf
+                                mapped_triplets.append(mapped_triplet)
+                        output = {'tri': deduplication(mapped_triplets)}
 
-                    if include_sentence:
-                        output['sent'] = sentence
-                    if len(output['tri']) > 0:
-                        g.write(json.dumps( output )+'\n')
+                        if include_sentence:
+                            output['sent'] = sentence
+                        if len(output['tri']) > 0:
+                            g.write(json.dumps( output )+'\n')

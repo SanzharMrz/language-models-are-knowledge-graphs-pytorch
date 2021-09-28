@@ -17,7 +17,6 @@ def build_graph(matrix):
 
 def BFS(s, end, graph, max_size=-1, black_list_relation=[]):
     visited = [False] * (max(graph.keys())+100) 
-  
     # Create a queue for BFS 
     queue = [] 
 
