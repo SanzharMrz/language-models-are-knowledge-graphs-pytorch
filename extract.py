@@ -1,5 +1,4 @@
 import sys, os
-from process import parse_sentence
 from mapper import Map, deduplication
 from transformers import AutoTokenizer, BertModel, GPT2Model
 import argparse
@@ -76,7 +75,8 @@ if __name__ == '__main__':
                 if len(sentence):
                     if len(triplets) > 0:
                         # Map
-                        entities = " ".join(el_model([sentence])[0][0]).lower()
+                        entities, _, wiki_ids = el_model([sentence])
+                        entity_wiki_dict = dict(zip(entities[0], wiki_ids[0]))
                         mapped_triplets = []
                         for triplet in triplets:
                             head = triplet['h']
@@ -85,7 +85,7 @@ if __name__ == '__main__':
                             conf = triplet['c']
                             if conf < args.threshold:
                                 continue
-                            mapped_triplet = Map(head, relations, tail, entities)
+                            mapped_triplet = Map(head, relations, tail, entity_wiki_dict)
                             if 'h' in mapped_triplet:
                                 mapped_triplet['c'] = conf
                                 mapped_triplets.append(mapped_triplet)
