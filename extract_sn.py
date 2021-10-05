@@ -2,10 +2,7 @@ from process import parse_sentence
 from transformers import AutoTokenizer, BertModel, GPT2Model
 import argparse
 import time
-<<<<<<< HEAD
 import pickle
-=======
->>>>>>> 5cba80c4ad4fce227578e0bd849d71c7de998908
 import pandas as pd
 import en_core_web_sm
 from tqdm import tqdm
