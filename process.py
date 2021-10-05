@@ -79,7 +79,7 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=True):
     tail_head_pairs = []
     for head in noun_chunks:
         for tail in noun_chunks:
-            if (head != tail) and (head.lower() in entities) and (tail.lower() in entities):
+            if (head != tail):
                 tail_head_pairs.append((token2id[head], token2id[tail]))
 
     black_list_relation = set([token2id[n] for n in noun_chunks])
