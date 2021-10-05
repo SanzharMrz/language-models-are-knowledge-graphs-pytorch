@@ -5,7 +5,6 @@ import argparse
 import pandas as pd
 
 
-
 def get_args():
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--predict_path", default='triplets_filtered.pkl', help="path to some predict pkl file")
