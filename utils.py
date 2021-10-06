@@ -103,7 +103,6 @@ def parse_ner_results(ner_results):
             sub_fold.append(curr['word'])
 
         elif (prev_flag == 'I') and (curr_flag == 'I' ) and (idx + 1) == len(ner_results):
-            print('two is')
             sub_fold.append(curr['word'])
             ordered = OrderedDict(dict(zip(sub_fold, range(len(sub_fold)))))
             candidates.append(' '.join(list(ordered.keys())))
