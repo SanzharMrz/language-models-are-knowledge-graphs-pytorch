@@ -6,19 +6,29 @@ import pandas as pd
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--predict_path", default='triplets_filtered.pkl', help="path to some predict pkl file")
-    parser.add_argument("--target_path", default='docred_triplets_filtered.csv', help="path to some target csv file")
-    parser.add_argument("--out_path", default='', help="path to save folder")
+    parser = argparse.ArgumentParser(
+        description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--predict_path",
+        default="triplets_filtered_500.pkl",
+        help="path to some predict pkl file",
+    )
+    parser.add_argument(
+        "--target_path",
+        default="docred_triplets_filtered.csv",
+        help="path to some target csv file",
+    )
+    parser.add_argument("--out_path", default="results", help="path to save folder")
     args = parser.parse_args()
     return args
 
-  
+
 def scoring(args):
 
     predict_path = args.predict_path
     target_path = args.target_path
-    out_path = args.target_path
+    out_path = args.out_path
 
     with open(predict_path, "rb") as file:
         flt_trp_filtered = pickle.load(file)
@@ -53,22 +63,22 @@ def scoring(args):
     recall = tp / (tp + fn)
     f1 = 2 * (precision * recall) / (precision + recall)
     metrics = {"precision": precision, "recall": recall, "f1": f1}
-    
+
     if not os.path.exists(out_path):
-      os.mkdir(out_path)
-      
+        os.mkdir(out_path)
+
     fps_path = os.path.join(out_path, "fps.pkl")
     csv_path = os.path.join(out_path, "metrics.csv")
-    
+
     with open(fps_path, "wb") as file:
         pickle.dump(fps_dict, file)
 
-    pd.DataFrame(metrics.items(), columns=["metrics", "scores"], index=False).to_csv(
-        csv_path
+    pd.DataFrame(metrics.items(), columns=["metrics", "scores"]).to_csv(
+        csv_path, index=False
     )
     return 0
-  
-  
-if __name__ == '__main__':
-  args = get_args()
-  scoring(args)
+
+
+if __name__ == "__main__":
+    args = get_args()
+    scoring(args)
