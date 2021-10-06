@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import numpy as np
 import torch
 import re
@@ -67,12 +68,59 @@ def is_word(token):
         return False
     return True
 
-def create_mapping(sentence, return_pt=False, nlp = None, tokenizer=None):
+
+def parse_ner_results(ner_results):
+    candidates = []
+    sub_fold = []
+    for idx, curr in enumerate(ner_results):
+        if idx == 0:
+            sub_fold.append(curr['word'])
+            prev_flag = curr['entity'].split('-')[0]
+            prev = curr
+            continue
+        curr_flag = curr['entity'].split('-')[0]
+        if prev_flag == 'B' and curr_flag == 'B' and not idx:
+            candidates.append(sub_fold[0])
+            sub_fold = []
+
+        elif prev_flag == 'B' and curr_flag == 'B' and idx:
+            sub_fold.append(prev['word'])
+            candidates.append(sub_fold[0])
+            sub_fold = []
+            sub_fold.append(curr['word'])
+
+        elif prev_flag == 'B' and curr_flag == 'I':
+            sub_fold.append(prev['word'])
+            sub_fold.append(curr['word'])
+
+        elif (prev_flag == 'I') and (curr_flag == 'I' ) and (idx + 1 < len(ner_results)):
+            sub_fold.append(curr['word'])
+
+        elif (prev_flag == 'I') and (curr_flag == 'B' ):
+            ordered = OrderedDict(dict(zip(sub_fold, range(len(sub_fold)))))
+            candidates.append(' '.join(list(ordered.keys())).replace(' #', '').replace('#', ''))
+            sub_fold = []
+            sub_fold.append(curr['word'])
+
+        elif (prev_flag == 'I') and (curr_flag == 'I' ) and (idx + 1) == len(ner_results):
+            print('two is')
+            sub_fold.append(curr['word'])
+            ordered = OrderedDict(dict(zip(sub_fold, range(len(sub_fold)))))
+            candidates.append(' '.join(list(ordered.keys())))
+            sub_fold = []
+
+        prev = curr
+        prev_flag = prev['entity'].split('-')[0]
+    return candidates
+
+def create_mapping(sentence, return_pt=False, nlp = None, tokenizer=None, pipeline_ner=None):
     '''Create a mapping
         nlp: spacy model
         tokenizer: huggingface tokenizer
     '''
     doc = nlp(sentence)
+    ner_results = pipeline_ner(sentence)
+    parsed_candidates = parse_ner_results(ner_results)
 
     tokens = list(doc)
 
@@ -82,9 +130,10 @@ def create_mapping(sentence, return_pt=False, nlp = None, tokenizer=None):
     end_chunk = []
     noun_chunks = []
     for chunk in doc.noun_chunks:
-        noun_chunks.append(chunk.text)
-        start_chunk.append(chunk.start)
-        end_chunk.append(chunk.end)
+        if chunk.text in parsed_candidates:
+            noun_chunks.append(chunk.text)
+            start_chunk.append(chunk.start)
+            end_chunk.append(chunk.end)
 
     sentence_mapping = []
     token2id = {}
