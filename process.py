@@ -10,16 +10,15 @@ from constant import invalid_relations_set
 def process_matrix(attentions, layer_idx=-1, head_num=0, avg_head=False, use_cuda=True):
     if avg_head:
         if use_cuda:
-            attn = torch.mean(attentions[0][layer_idx], 0).cpu()
+            attn = torch.mean(attentions[layer_idx].squeeze(), 0).cpu()
         else:
-            attn = torch.mean(attentions[0][layer_idx], 0)
+            attn = torch.mean(attentions[layer_idx].squeeze(), 0)
         attention_matrix = attn.detach().numpy()
     else:
         attn = attentions[0][layer_idx][head_num]
         if use_cuda:
             attn = attn.cpu()
         attention_matrix = attn.detach().numpy()
-
     attention_matrix = attention_matrix[1:-1, 1:-1]
 
     return attention_matrix
