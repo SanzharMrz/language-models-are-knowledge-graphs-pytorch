@@ -3,11 +3,16 @@ from multiprocessing import Pool
 import spacy
 import en_core_web_sm
 import torch
-from transformers import AutoTokenizer, BertModel, GPT2Model
+from transformers import AutoTokenizer, BertModel, GPT2Model, AutoModelForTokenClassification, pipeline
+
 from constant import invalid_relations_set
+tokenizer_ner = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
+model_ner = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
+ner = pipeline("ner", model=model_ner, tokenizer=tokenizer_ner)
 
 
-def process_matrix(attentions, layer_idx=-1, head_num=0, avg_head=False, use_cuda=True):
+
+def process_matrix(attentions, layer_idx=6, head_num=0, avg_head=False, use_cuda=True):
     if avg_head:
         if use_cuda:
             attn = torch.mean(attentions[layer_idx].squeeze(), 0).cpu()
@@ -22,6 +27,7 @@ def process_matrix(attentions, layer_idx=-1, head_num=0, avg_head=False, use_cud
     attention_matrix = attention_matrix[1:-1, 1:-1]
 
     return attention_matrix
+
 
 def bfs(args):
     s, end, graph, max_size, black_list_relation = args
@@ -60,7 +66,7 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=True):
     '''
     tokenizer_name = str(tokenizer.__str__)
     inputs, tokenid2word_mapping, token2id, noun_chunks = create_mapping(sentence, return_pt=True, nlp=nlp,
-                                                                         tokenizer=tokenizer)
+                                                                         tokenizer=tokenizer, pipeline_ner=ner)
 
     with torch.no_grad():
         if use_cuda:
