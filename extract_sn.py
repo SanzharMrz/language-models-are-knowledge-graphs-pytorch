@@ -21,6 +21,8 @@ if __name__ == '__main__':
     encoder.eval()
 
     data = pd.read_csv('texts.csv')
+    data = data.sample(500, random_state=666)
+
     data['time_cuda'] = None
     triplets_dict = {}
     
@@ -31,5 +33,5 @@ if __name__ == '__main__':
         data.loc[ind, 'time_cuda'] = time.time() - start_time
         data.to_csv('texts_parsed.csv', index=False)
         triplets_dict[text] = triplets
-        with open('triplets.pkl', 'wb') as file:
-            pickle.dump(triplets_dict, file, protocol=pickle.HIGHEST_PROTOCOL)
+    with open('triplets.pkl', 'wb') as file:
+        pickle.dump(triplets_dict, file, protocol=pickle.HIGHEST_PROTOCOL)
