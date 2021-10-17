@@ -142,14 +142,16 @@ def create_mapping(sentence, return_pt=False, nlp = None, tokenizer=None, pipeli
         if idx in start_chunk:
             mode = 1
             sentence_mapping.append(noun_chunks[chunk_id])
-            token2id[sentence_mapping[-1]] = len(token2id)
+            if sentence_mapping[-1] not in token2id:
+                token2id[sentence_mapping[-1]] = len(token2id)
             chunk_id += 1
         elif idx in end_chunk:
             mode = 0
 
         if mode == 0:
             sentence_mapping.append(token.text)
-            token2id[sentence_mapping[-1]] = len(token2id)
+            if sentence_mapping[-1] not in token2id:
+                token2id[sentence_mapping[-1]] = len(token2id)
 
 
     token_ids = []
